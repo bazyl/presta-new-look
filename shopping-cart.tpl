@@ -1,0 +1,161 @@
+{capture name=path}{l s='Your shopping cart'}{/capture}
+{include file=$tpl_dir./breadcrumb.tpl}
+
+<h2>{l s='Shopping cart summary'}</h2>
+
+{assign var='current_step' value='summary'}
+{include file=$tpl_dir./order-steps.tpl}
+
+{include file=$tpl_dir./errors.tpl}
+
+{if isset($empty)}
+	<p class="warning">{l s='Your shopping cart is empty.'}</p>
+{else}
+<p>
+	{l s='Your shopping cart contains'} {$products|@count} {if $products|@count > 1}{l s='products'}{else}{l s='product'}{/if}
+</p>
+<div id="order-detail-content" class="table_block">
+	<table id="cart_summary" class="std">
+		<thead>
+			<tr>
+				<th class="cart_product first_item">{l s='Product'}</th>
+				<th class="cart_description item">{l s='Description'}</th>
+				<th class="cart_ref item">{l s='Ref.'}</th>
+				<th class="cart_availability item">{l s='Avail.'}</th>
+				<th class="cart_unit item">{l s='Unit price'}</th>
+				<th class="cart_quantity item">{l s='Qty'}</th>
+				<th class="cart_total last_item">{l s='Total'}</th>
+			</tr>
+		</thead>
+		<tfoot>
+			<tr class="cart_total_product">
+				<td colspan="6">{l s='Total products:'}</td>
+				<td class="price">{convertPrice price=$total_products_wt}</td>
+			</tr>
+			{if $total_discounts != 0}
+			<tr class="cart_total_voucher">
+				<td colspan="6">{l s='Total vouchers:'}</td>
+				<td class="price-discount">{convertPrice price=$total_discounts}</td>
+			</tr>
+			{/if}
+			{if $total_wrapping > 0}
+			<tr class="cart_total_voucher">
+				<td colspan="6">{l s='Total gift-wrapping:'}</td>
+				<td class="price-discount">{convertPrice price=$total_wrapping}</td>
+			</tr>
+			{/if}
+			{if $shippingCost > 0}
+			<tr class="cart_total_delivery">
+				<td colspan="6">{l s='Total shipping:'}</td>
+				<td class="price">{convertPrice price=$shippingCost}</td>
+			</tr>
+			{/if}
+			<tr class="cart_total_price">
+				<td colspan="6">{if !$carrier->id}{l s='Total:'}{else}{l s='Total:'}{/if}</td>
+				<td class="price">{convertPrice price=$total_price}</td>
+			</tr>
+		</tfoot>
+		<tbody>
+		{foreach from=$products item=product name=productLoop}
+			<tr class="{if $smarty.foreach.productLoop.last}last_item{elseif $smarty.foreach.productLoop.first}first_item{/if} {if $smarty.foreach.productLoop.index % 2}alternate_item{else}item{/if} cart_item">
+				<td class="cart_product">
+					<a href="{$link->getProductLink($product.id_product, $product.link_rewrite)|escape:'htmlall':'UTF-8'}"><img src="{$img_prod_dir}{$product.id_image}-small.jpg" alt="{$product.name|escape:'htmlall':'UTF-8'}" /></a>
+				</td>
+				<td class="cart_description">
+					<h5><a href="{$link->getProductLink($product.id_product, $product.link_rewrite)|escape:'htmlall':'UTF-8'}">{$product.name|escape:'htmlall':'UTF-8'}</a></h5>
+					{if $product.attributes}<a href="{$link->getProductLink($product.id_product, $product.link_rewrite)|escape:'htmlall':'UTF-8'}">{$product.attributes|escape:'htmlall':'UTF-8'}</a>{/if}
+				</td>
+				<td class="cart_ref">{if $product.reference}{$product.reference|escape:'htmlall':'UTF-8'}{else}--{/if}</td>
+				<td class="cart_availability">
+					{if $product.active AND ($product.allow_oosp OR $product.stock_quantity > 0)}
+						<img src="{$img_dir}icon/available.gif" alt="{l s='Available'}" />
+					{else}
+						<img src="{$img_dir}icon/unavailable.gif" alt="{l s='Out of stock'}" />
+					{/if}
+				</td>
+				<td class="cart_unit"><span class="price">{convertPrice price=$product.price_wt}</span></td>
+				<td class="cart_quantity">
+					<a class="cart_quantity_delete" href="{$base_dir}cart.php?delete&amp;id_product={$product.id_product|intval}&amp;ipa={$product.id_product_attribute|intval}&amp;token={$token_cart}" title="{l s='Delete'}"><img src="{$img_dir}icon/delete.gif" alt="{l s='Delete'}" class="icon" /></a>
+					<p>{$product.quantity|intval}</p>
+					<a class="cart_quantity_up" href="{$base_dir}cart.php?add&amp;id_product={$product.id_product|intval}&amp;ipa={$product.id_product_attribute|intval}&amp;token={$token_cart}" title="{l s='Add'}"><img src="{$img_dir}icon/quantity_up.gif" alt="{l s='Add'}" /></a><br />
+					<a class="cart_quantity_down" href="{$base_dir}cart.php?add&amp;id_product={$product.id_product|intval}&amp;ipa={$product.id_product_attribute|intval}&amp;op=down&amp;token={$token_cart}" title="{l s='Subtract'}"><img src="{$img_dir}icon/quantity_down.gif" alt="{l s='Subtract'}" /></a>
+				</td>
+				<td class="cart_total"><span class="price">{convertPrice price=$product.total_wt}</span></td>
+			</tr>
+		{/foreach}
+		</tbody>
+	{if $discounts}
+		<tbody>
+		{foreach from=$discounts item=discount name=discountLoop}
+			<tr class="cart_discount {if $smarty.foreach.discountLoop.last}last_item{elseif $smarty.foreach.discountLoop.first}first_item{else}item{/if}">
+				<td class="cart_discount_name" colspan="2">{$discount.name}</td>
+				<td class="cart_discount_description" colspan="3">{$discount.description}</td>
+				<td class="cart_discount_delete"><a href="{$base_dir_ssl}order.php?deleteDiscount={$discount.id_discount}" title="{l s='Delete'}"><img src="{$img_dir}icon/delete.gif" alt="{l s='Delete'}" class="icon" /></a></td>
+				<td class="cart_discount_price"><span class="price-discount">-{convertPrice price=$discount.value_real}</span></td>
+			</tr>
+		{/foreach}
+		</tbody>
+	{/if}
+	</table>
+</div>
+
+{if $voucherAllowed}
+<div class="cart_voucher">
+	{if $errors_discount}
+		<ul class="error">
+		{foreach from=$errors_discount key=k item=error}
+			<li>{$error|escape:'htmlall':'UTF-8'}</li>
+		{/foreach}
+		</ul>
+	{/if}
+	<form action="{$smarty.server.PHP_SELF}" method="post" id="voucher">
+		<fieldset>
+			<h4>{l s='Vouchers'}</h4>
+			<p>
+				<label for="discount_name">{l s='Code:'}</label>
+				<input type="text" id="discount_name" name="discount_name" value="{if $discount_name}{$discount_name}{/if}" />
+			</p>
+			<p class="submit"><input type="submit" name="submitDiscount" value="{l s='Add'}" class="button" /></p>
+		</fieldset>
+	</form>
+</div>
+{/if}
+{$HOOK_SHOPPING_CART}
+{if ($carrier->id AND !$virtualCart) OR $delivery->id OR $invoice->id}
+<div class="order_delivery">
+	{if $delivery->id}
+	<ul id="delivery_address" class="address item">
+		<li class="address_title">{l s='Delivery address'}</li>
+		{if $delivery->company}<li class="address_company">{$delivery->company|escape:'htmlall':'UTF-8'}</li>{/if}
+		<li class="address_name">{$delivery->lastname|escape:'htmlall':'UTF-8'} {$delivery->firstname|escape:'htmlall':'UTF-8'}</li>
+		<li class="address_address1">{$delivery->address1|escape:'htmlall':'UTF-8'}</li>
+		{if $delivery->address2}<li class="address_address2">{$delivery->address2|escape:'htmlall':'UTF-8'}</li>{/if}
+		<li class="address_city">{$delivery->postcode|escape:'htmlall':'UTF-8'} {$delivery->city|escape:'htmlall':'UTF-8'}</li>
+		<li class="address_country">{$delivery->country|escape:'htmlall':'UTF-8'}</li>
+	</ul>
+	{/if}
+	{if $invoice->id}
+	<ul id="invoice_address" class="address alternate_item">
+		<li class="address_title">{l s='Invoice address'}</li>
+		{if $invoice->company}<li class="address_company">{$invoice->company|escape:'htmlall':'UTF-8'}</li>{/if}
+		<li class="address_name">{$invoice->lastname|escape:'htmlall':'UTF-8'} {$invoice->firstname|escape:'htmlall':'UTF-8'}</li>
+		<li class="address_address1">{$invoice->address1|escape:'htmlall':'UTF-8'}</li>
+		{if $invoice->address2}<li class="address_address2">{$invoice->address2|escape:'htmlall':'UTF-8'}</li>{/if}
+		<li class="address_city">{$invoice->postcode|escape:'htmlall':'UTF-8'} {$invoice->city|escape:'htmlall':'UTF-8'}</li>
+		<li class="address_country">{$invoice->country|escape:'htmlall':'UTF-8'}</li>
+	</ul>
+	{/if}
+	{if $carrier->id AND !$virtualCart}
+	<div id="order_carrier">
+		<h4>{l s='Carrier:'}</h4>
+		{if isset($carrierPicture)}<img src="{$img_ship_dir}{$carrier->id}.jpg" alt="{l s='Carrier'}" />{/if}
+		<span>{$carrier->name|escape:'htmlall':'UTF-8'}</span>
+	</div>
+	{/if}
+</div>
+{/if}
+<p class="cart_navigation">
+	<a href="{$base_dir}order.php?step=1" class="exclusive" title="{l s='Next'}">{l s='Next'} &raquo;</a>
+	<a href="{if $smarty.server.HTTP_REFERER && $smarty.server.HTTP_REFERER != $base_dir|cat:'/order.php'}{$smarty.server.HTTP_REFERER}{else}{$base_dir}index.php{/if}" class="button_large" title="{l s='Continue shopping'}">&laquo; {l s='Continue shopping'}</a>
+</p>
+{/if}
